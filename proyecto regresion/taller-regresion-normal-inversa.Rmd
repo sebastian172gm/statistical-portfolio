@@ -1,0 +1,278 @@
+---
+title: "MODELO NORMAL-INVERSO PARA PREDICCIÓN DEL PRECIO DE VEHICULOS"
+author: "David Sebastian Gonzalez"
+date: '2023-05-18'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list = ls())
+
+
+
+pack<-c("rlang","lubridate","data.table","tidyverse","readxl","writexl","dplyr","beepr","XML",
+        "tidyverse","dbplyr","broom","purrr","kohonen","gridExtra","factoextra","audio","dendextend",
+        "odbc","DBI","utf8","ROCR","readr","tidyr","e1071","randomForest","stats","base","ggplot2","plotly","reticulate",
+        "assertthat","gtools","writexl","openxlsx","zoo","mondate","GLMsData","nortest","lubridate","olsrr","car","parameters")
+
+#install.packages("parameters", dependencies = TRUE)
+lapply(pack,require, character.only = TRUE)
+
+
+```
+
+
+
+
+## Introduccion
+
+
+La demanda de vehiculos a nivel mundial esta influenciado principalmente por los precios y por consecuencia los precios puede variar significativamente por diferentes factores el país, la marca, el modelo y las características específicas del automóvil.
+
+En general, los precios de los vehículos varían según la categoría a la que pertenezcan, como automóviles de lujo, vehículos deportivos, SUV, sedanes compactos, entre otros. Los vehículos de lujo tienden a tener precios más altos debido a las características de alta gama y al prestigio asociado con las marcas de lujo; En donde, tambien es importante destacar que la demanda de vehículos puede verse afectada por factores económicos, políticos y medioambientales. Las fluctuaciones en las condiciones económicas, las políticas gubernamentales relacionadas con los impuestos y las regulaciones medioambientales pueden influir en los patrones de compra de vehículos en diferentes regiones.
+
+
+En este estudio y para la prediccion de precios de los vehiculos se tiene en cuenta las caracterizticas fisicas de los vehiculos en las cuales se implementara un modelo escogido de acuerdo a nuestro objetivo y el comportamiento de los datos, todo esto con el fin de por identificar que variables aportan significativamente al modelo.
+
+
+
+
+Los datos que se tiene es de la compra de 200 automoviles para la construccion del modelo teniendo en cuenta las variables que se nos brinda, que son:
+
+-   **Price:** Precio del automovil.
+
+-   **body_type**: Tipo de  carrodecia del auto.
+
+-   **Category**: Categoria del auto.
+
+-   **cylinders**: Numero de cilindros del auto.
+
+-   **economy** : cantidad de ahorro de gasolina.
+
+-   **fuel**: tipo de gasolina del auto.
+
+-   **litres**: Litros de gasonilna por kilometro.
+
+-   **location**: Locacion de compra.
+
+-   **make**: marca del auto.
+
+-   **model**: modelo del auto.
+
+-   **odometer**: kilometraje recorrido.
+
+-   **transmission**: tipo de caja de cambios.
+
+-   **year**: año del modelo.
+
+
+
+```{r include=FALSE}
+
+rutasmodelos="C:/Users/1192923513/Documents/PERSONAL/universidad/modelos lineales/"
+automoviles <- read_excel(str_c(rutasmodelos,"/12 precio automovil taller.xlsx"))
+
+
+
+```
+
+## Ajuste del modelo
+
+Se realiza el modelo normal-inverso con todas las variables y usando el metodo backward el cual es un enfoque utilizado en la construcción de modelos de regresión de mínimos cuadrados generalizados (GLM) para seleccionar las variables más relevantes. Este método parte de un modelo inicial que incluye todas las variables predictoras y luego se eliminan iterativamente las variables menos significativas hasta que se alcanza un modelo final.
+
+```{r echo=FALSE, comment=""}
+precio <- glm( price ~ .,data=automoviles ,family=inverse.gaussian(link="inverse"))
+
+summary(precio)
+
+```
+
+Para encontrar le mejor modelo ajustado se eliminaron la variable "Model" iterativamente ya que no aportaban informacion significativa al modelo aunque no disminuyo nuestro criterio de AIC. 
+
+```{r echo=FALSE,comment=""}
+precio1 <- glm( price ~ .-model,data=automoviles, family=inverse.gaussian(link="inverse"))
+summary(precio1)
+anova(precio1)
+
+```
+
+
+## Identificacion de valores atipicos e influyentes
+
+Continuando en el ajuste del modelo normal-inverso procedemos a identificar valores atipicos, analisamos si
+existen valores atipicos o influyentes en el modelo. Para esto
+implementamos la prueba de bonferroni y la distancia de cook y el dfftis. \\
+
+Para la prueba de Bonferroni se tiene la siguiente prueba de hipotesis:
+
+\[H_0: la-observacion-NO-es-atipica\]
+\[H_A: la-observacion-es-atipica\]
+
+```{r echo=FALSE, comment=""}
+outlierTest(precio1, cutoff=Inf, n.max=20)
+#influenceIndexPlot(precio1,vars="Distncia de cook del modelo normal-inverso")
+
+
+a<-dffits(precio1)
+indice1 <- which(a<(-0.1))
+
+```
+
+Segun la prueba de Bontferroni y las pruebas de la distancia de cook y DFFTIS, entonces los valores atipicos e inflyentes encontrados son 85. 
+
+```{r echo=FALSE,comment=""}
+automoviles1<-automoviles[-c(indice1),]
+precio1 <- glm( price ~ .-model,data=automoviles1, family=inverse.gaussian(link="inverse"))
+asb<-outlierTest(precio1, cutoff=Inf, n.max=30)
+print(asb)
+indice2 <- which(!is.na(asb$bonf.p))
+
+```
+
+Una vez eliminadas las 85 observaciones se siguen apreciando observaciones atipicas, se remueven nuevamente y se vuelve a evaluar el modelo.
+
+```{r include=FALSE}
+automoviles1 <- automoviles1[-c(indice2),]
+precio1 <- glm( price ~ .-model,data=automoviles1, family=inverse.gaussian(link="inverse"))
+
+asb1<-outlierTest(precio1, cutoff=Inf, n.max=250)
+indice <- which(!is.na(asb1$bonf.p))
+automoviles1 <- automoviles1[-c(indice),]
+precio1 <- glm( price ~ .-model,data=automoviles1, family=inverse.gaussian(link="inverse"))
+
+asb2<-outlierTest(precio1, cutoff=Inf, n.max=180)
+indice3 <- which(!is.na(asb2$bonf.p))
+automoviles2 <- automoviles1[-c(indice3),]
+precio1 <- glm( price ~ .-model,data=automoviles2, family=inverse.gaussian(link="inverse"))
+
+asb3<-outlierTest(precio1, cutoff=Inf, n.max=100)
+indice4 <- which(!is.na(asb3$bonf.p))
+automoviles2 <- automoviles2[-c(indice4,14954),]
+precio1 <- glm( price ~ .-model,data=automoviles2, family=inverse.gaussian(link="inverse"))
+
+
+
+summary(precio1)
+
+
+
+
+```
+
+
+Se lograron identificar 510 valores atipicos con el test de bontferroni y el DFFTIS, con un nivel de significancia del 5% y se eliminaros estas observaciones. Se logro disminuir el AIC del modelo a 659946.
+
+## Supuestos del modelo
+
+```{r echo=FALSE}
+plot(precio1,which=1)
+```
+
+Los datos presentan heterosedasticidad entre la variacion de sus residuales en forma de trompeta.
+
+```{r echo=FALSE,comment=""}
+plot(precio1,which=2)
+ad.test(residuals(precio1))
+lillie.test(residuals(precio1))
+```
+
+La prueba de normalidad de Anderson-Darling y de Kolmogorov-Smirnov nos dicen que los datos no provienen de una distribucion normal.
+
+```{r echo=FALSE}
+id<-seq(1,length(precio1$y))
+plot(id,residuals(precio1))
+
+
+```
+
+Los errores se distribuyen aleatoriamente, por tanto, existe independencia.
+
+```{r,comment=""}
+vif(precio1)
+```
+
+Existe multicolinealidad en las variables year, Asi que se elimina del modelo.
+
+## Correccion del modelo.
+
+```{r echo=FALSE,comment=""}
+precio2 <- glm( price ~ .-model-year,data=automoviles2, family=inverse.gaussian(link="inverse"))
+summary(precio2)
+```
+De Esta manera sube bastante el AIC, sin embargo todas las variables se vuelven significativas en el modelo excepto transmission,location,category,economy y se eliminaron uno evidenciado que si se tienen que eliminar. Al ajustar el modelo se debe validar de nuevo si existen valores influyentes, se eliminan y se validan de nuevo los supuestos.
+
+```{r echo=FALSE,comment=""}
+precio3 <- glm( price ~ .-model-year-location-economy-category,data=automoviles2, family=inverse.gaussian(link="inverse"))
+summary(precio3)
+```
+
+
+```{r include=FALSE}
+
+asb4<-outlierTest(precio3, cutoff=Inf, n.max=50)
+print(asb4)
+indice5 <- which(!is.na(asb4$bonf.p))
+automoviles3 <- automoviles2[-c(indice4),]
+precio3 <- glm( price ~ .-model-year-location-economy-category,data=automoviles2, family=inverse.gaussian(link="inverse"))
+summary(precio3)
+```
+
+Se eliminaron de nuevo 50 Observaciones que eran influyentes segun el test de Bontferroni, con un N.S.del 5%.
+
+
+```{r,comment="", echo=FALSE,fig.height=3}
+plot(precio3,which=1)
+plot(precio3,which=2)
+ad.test(residuals(precio3))
+lillie.test(residuals(precio3))
+```
+Los datos residuales vs los datos del modelo sigen sin presentar una tendencia  y se distribuyen entre -2 y 2. Aun asi los datos siguen si distribuirse de manera normal.
+
+```{r echo=FALSE,comment="",fig.height=3}
+id2<-seq(1,length(precio3$y))
+plot(id2,residuals(precio3))
+
+vif(precio3)
+
+summary(precio3)
+a<-data.frame(precio3$coefficients)
+
+write.xlsx(a, str_c(rutasmodelos,"borrar.xlsx"))
+```
+
+Los Residuales del modelo se distribuyen aleatoriamente, por tanto existe independencia entre los residuales, y con el nuevo modelo no exist ninguna variable que presente multicolinealidad.
+
+## Resultados del modelo final ajustado
+
+
+El mejor modelo ajustado al final fue:
+
+\[Price = 2,13099E-05(Intercept)	-9,50158E-06body_typeSedan	-6,53082E-06body_typeSUV	+ 7,34884E-06cylinders	+1,29009E-05fuelUnleaded	-1,27844E-05litres	-2,86392E-06makeToyota	+ 3,17901E-10odometer	3,42313E-06transmissionManual
+\] 
+```{r}
+exp(-9.50158E-06)
+```
+
+
+donde: 
+
+ - Los automoviles valen mas si no son convertibles.
+ - El ahorro de gasolina en el auto hace que el auto valga menos con un factor de -0.00000483
+ - El precio de los vehiculos aunmenta en relacion a su numero del cilindro en un factor de 7.348840e-06	
+ - Los autos con gasolina sin plomo valen 0.00001.579 veces mas que los autos con gasolina diesel.
+ - El precio disminuye si disminuyen los litros de gasolina del tanque con fctor de -1.278439e-05	
+ - Los autos de marca Toyota valen menos que los Subaro con un factor de -2.863923e-06	
+ - Los autos con transmision manual y desconocida valen menos que los automoviles con transmision automatica.
+ 
+ 
+ todo esto en millones de dolares.
+
+
+## Conclusiones 
+
+
+Este es el mejor modelos ajustado para los datos se evidenciaron demaciados datos atipicos en la base para la significancia del modelo y se encontaron significantes 7 variables del total de variables de la base de datos.
+
+

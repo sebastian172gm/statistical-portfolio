@@ -1,0 +1,161 @@
+---
+title: "Proyecto Bioestadistica"
+author: "David sebastian gonzalez"
+date: "2023-08-28"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE, warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Liberias
+
+pack<-c("rlang","lubridate","data.table","tidyverse","readxl","writexl","dplyr","beepr","XML",  "tidyverse","dbplyr","broom","purrr","kohonen","gridExtra","factoextra","audio","dendextend",
+        "odbc","DBI","utf8","ROCR","readr","tidyr","e1071","randomForest","stats","base","ggplot2","plotly","reticulate",
+        "assertthat","gtools","writexl","openxlsx","zoo","mondate","lubridate","arrow","kable","kableExtra","summarytools","DT","SmartEDA")
+
+
+packEDA<-c("DataExplorer","SmartEDA","dlookr","funModeling","ggstatsplot","flextable","summarytools","psych","skimr","gtsummary","moments","ggpubr","PerformanceAnalytics","performance","skimr","SDA","Hmisc","reshape2","describer")
+
+#"fabletools","tsibble","fable"
+#install.packages("SmartEDA", dependences=TRUE)
+#detach("package:MASS", unload = TRUE)
+lapply(pack,require, character.only = TRUE)
+
+lapply(packEDA,require, character.only = TRUE)
+
+```
+
+
+# Poryecto de investigacion sobre el dengue en colombia.
+
+
+
+# Introduccion
+
+El dengue es una enfermedad viral transmitida por el mosquito Aedes aegypti y, en algunos casos, por el mosquito Aedes albopictus. Se manifiesta como una infección febril aguda que puede variar desde un cuadro leve hasta una forma grave, potencialmente mortal. El virus del dengue es endémico en muchas regiones tropicales y subtropicales del mundo, incluyendo Colombia, donde constituye un importante problema de salud pública.
+
+En Colombia, el dengue ha sido reconocido como una enfermedad endémica desde hace varias décadas. Aunque las tasas de incidencia varían de año en año, el país ha experimentado brotes epidémicos periódicos que han afectado a diferentes regiones geográficas. Estos brotes tienen implicaciones significativas tanto para la salud pública como para la economía, ya que el dengue puede causar una alta carga de morbilidad, hospitalización y costos médicos.
+
+El objetivo de esta investigación es realizar un análisis exhaustivo de la incidencia del dengue en Colombia y explorar los factores asociados a la propagación de la enfermedad. El análisis se basará en datos epidemiológicos, demográficos y ambientales, con el fin de proporcionar una comprensión más profunda de la dinámica del dengue en el país. Además, se buscará identificar posibles patrones espaciales y temporales de la enfermedad, así como factores socioeconómicos y ambientales que podrían estar contribuyendo a su propagación.
+
+## Glosario de variables.
+
+
+Id=	Identificador del objeto
+
+individualCount=	Conteo de ejemplares
+
+sex=	Cantidad de ejemplares de cada sexo
+
+organismRemarks =Comentarios sobre los ejemplares
+
+eventID=	Barrio de recolección
+
+eventDate=	Fecha de recolección
+
+locationID= Código de Municipio
+
+county= Nombre del Municipio
+
+locality= Lugar de la recolección
+
+verbatimElevation= Elevación de la recolección
+
+decimalLatitude= Latitud. Se utilizó el máximo de decimales disponibles
+
+decimalLongitude= Longitud. Se utilizó el máximo de decimales disponibles
+
+scientificName= Nombre cientifico
+
+higherClassification	= Arbol de clasificación de la especie
+
+genus= Genero del ejemplar
+
+subgenus specificEpithet= Subgénero del ejemplar Epíteto específico
+
+vernacularName= Nombre vernáculo
+
+OBJECTID=	Identificador del objeto
+
+Loc_name=	nombre del localizador participante que se utiliza para geocodificar o georreferenciar la
+dirección.
+
+Longitud=	Longitud. Se utilizó el máximo de decimales disponibles
+
+Latitud=	Latitud. Se utilizó el máximo de decimales disponibles
+
+Proceso=	Geocodificación o Georreferenación según corresponda
+
+Match_addr=	Nombre del barrio, de la vereda o ubicación manual usando la capa de Open Street Maps (OSM)
+
+Barrio_OSM=	Barrio correspondiente con la capa de polí- gonos de barrio descargada desde el web- site de
+OSM
+Sexo=	M masculino, F femenino
+
+Edad=	1 - 100
+
+Ocupación=	La codificación de la ocupación está a partir de la Clasificación Internacional Uniforme de
+Ocupaciones (CIUO 88)
+Pertenencia etnica=	1. indigena, 2, rom o gitano, 3. raizal, 4. palenquero, 5. negro, mulato afrocolom- biano, 6. Otro
+
+fec_consulta=	fecha en la que realizó la consulta a la UPGD
+
+ini_sintomas=	fecha en la que reporta el inicio de síntomas
+
+locationID=	Código de municipio
+
+county=	Nombre del municipio
+
+
+
+### *base de datos*
+
+
+```{r}
+##### bases de datos 
+
+ruta="C:\\Users\\1192923513\\Documents\\Univerisadad\\Bioestadistica Jose\\"
+
+
+denge<-read.csv(str_c(ruta,"cases_clean.csv"), header = T)
+denge<-read.csv(str_c(ruta,"cases_clean.csv"), header = T)
+entomologi<-read.csv(str_c(ruta,"entomologico_clean.csv"), header = T)
+
+```
+
+
+```{r}
+
+A<-skim(denge)
+
+```
+
+```{r}
+Hmisc::describe(denge)
+
+
+```
+
+
+
+```{r}
+names(denge)
+
+ggplot(denge, aes(x = Edad)) +
+  geom_histogram(binwidth = 0.5, fill = "skyblue", color = "black") +
+  geom_density(alpha = 0.3)
+```
+```{r}
+library(GGally)
+a<-ggpairs(denge %>% select(!c(Loc_name,Barrio_OSM,fec_consulta,ini_sintomas)))
+a
+
+#if (!require(pairsD3)) {
+# devtools::install_github("timelyportfolio/pairsD3")
+#}
+#library(pairsD3)
+```
+

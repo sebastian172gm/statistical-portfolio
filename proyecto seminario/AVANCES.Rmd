@@ -1,0 +1,431 @@
+---
+title: "proyecto seminario"
+output: html_notebook
+---
+
+```{r,include=FALSE,warning=FALSE}
+## librerias 
+library(latexpdf)
+#library(FactoClass) # Cargar el paquete FactoClass
+library(RODBC) # Cargar el paquete RODBC
+library(ISwR) # Cargar el paquete 
+library(ggplot2)
+library(corrplot)
+library(esquisse)
+library(pander)
+library(fastDummies)
+library(stringr)
+library(FactoMineR)
+library(dplyr)
+library(PMCMR)
+library(factoextra)
+library(nortest)
+require(pscl)
+require(boot)
+```
+
+
+```{r,include=FALSE}
+## data 
+library(readr)
+
+central_cleaned <- read_csv("C:\\Users\\usuario\\Documents\\Universidad\\proyecto seminario\\central_cleaned.csv")
+
+
+```
+
+
+## Na faltantes 
+```{r}
+## Na en las variables 
+#pander(colSums(is.na(central_cleaned)))
+```
+
+Se eliminan las variables con más de 3000 na
+
+```{r}
+data<-central_cleaned[, colSums(is.na(central_cleaned))<= (3000)]
+#str(data)
+```
+
+
+## CORRELACIÓN EN LAS VARIABLES 
+```{r}
+datacor<-c()
+datacor<- data[,19:29]
+
+datacor$release_crude_oil<-as.numeric(datacor$release_crude_oil)
+
+datacor$release_crude_oil_edit<-as.numeric(datacor$release_crude_oil_edit)
+
+datacor$release_prod_wtr<-as.numeric(datacor$release_prod_wtr)
+
+datacor$release_prod_water_edit<-as.numeric(datacor$release_prod_water_edit)
+
+datacor$recovery_crude_oil<-as.numeric(datacor$recovery_crude_oil)
+
+datacor$recovery_crude_oil_edit<-as.numeric(datacor$recovery_crude_oil_edit)
+
+datacor$recovery_prod_wtr<-as.numeric(datacor$recovery_prod_wtr)
+
+datacor$recovery_prod_water_edit<-as.numeric(datacor$recovery_prod_water_edit)
+
+datacor$release_cond<-as.numeric(datacor$release_cond)
+
+datacor$release_gas<-as.numeric(datacor$release_gas)
+
+datacor$recovery_cond<-as.numeric(datacor$recovery_cond)
+
+```
+
+```{r}
+matriz_cor<- cor((na.omit(datacor)))
+```
+
+```{r}
+corrplot(matriz_cor,method="circle")
+```
+
+
+# arreglo de la base de datos
+
+-- country
+
+
+```{r}
+data$county_edit<-toupper(data$county_edit)
+data$county_edit<-factor(data$county_edit)
+
+```
+-- tipo de operación 
+
+```{r}
+data$type_operation<-toupper(data$type_operation)
+data<-data %>% mutate(type_operation=case_when(
+  type_operation=="COMPLETIONS"~"COMPLETION"
+  ,type_operation=="INJECTION/ DISPOSAL"~"INJECTION/DISPOSAL"
+  ,type_operation=="PRODUCTIOM"~"PRODUCTION"
+  ,type_operation=="TRANSPORATION"~"TRANSPORTATION"
+  ,type_operation=="TRANSPORT"~"TRANSPORTATION"
+  ,type_operation=="TRASPORTATION"~"TRANSPORTATION"
+  ,type_operation=="INJ/DISP"~"INJECTION/DISPOSAL"
+  ,type_operation=="INJ/DISPOSAL"~"INJECTION/DISPOSAL"
+  ,TRUE~type_operation))
+data$type_operation<-factor(data$type_operation)
+levels(data$type_operation)
+```
+--Source
+
+```{r}
+data$source <- trimws(data$source)
+data$source <- toupper(data$source)
+data$source <- factor(data$source)
+
+data<-data %>% mutate(source=case_when(
+  source=="?"~"UNKNOWN"
+  ,source=="FLARESTACK"~"FLARE STACK"
+  ,source=="FLOW LINE"~"FLOWLINE"
+  ,source=="FRAC TANKS"~"FRAC TANK"
+  ,source=="GATHERER"~"GATHERING"
+  ,source=="GATERING LINE"~"GATHERING LINE"
+  ,source=="HP SEPARATOR"~"HIGH PRRESSURE SEPARATOR"
+  ,source=="PILELINE"~"PIPELINE"
+  ,source=="PIPE"~"PIPELINE"
+  ,source=="SEPERATOR"~"SEPARATOR"
+  ,source=="TANK BATERY"~"TANK BATTERY"
+  ,source=="TANK BATTTERY"~"TANK BATTERY"
+  ,source=="VAC TRUCK"~"VACUUM TRUCK"
+  ,source=="WELL HEAD"~"WELLHEAD"
+  ,TRUE~source))
+  
+data$source <- factor(data$source)
+levels(data$source)
+
+```
+
+
+
+
+```{r}
+data$probable_cause_edit <- trimws(data$probable_cause_edit)
+data$probable_cause_edit <- toupper(data$probable_cause_edit)
+data$probable_cause_edit <- factor(data$probable_cause_edit)
+levels(data$probable_cause_edit)
+```
+
+
+```{r}
+data<-data %>% mutate(probable_cause_edit=case_when(
+  probable_cause_edit=="?"~"UNKNOWN"
+  ,probable_cause_edit=="BALL VALVE FAILED"~"BALL VALVE FAILURE"
+  ,probable_cause_edit=="EQUIPEMENT MALFUNCTION"~"EQUIPMENT MALFUNCTION"
+  ,probable_cause_edit=="FAILURE"~"FAILED"
+  ,probable_cause_edit=="FLOW LINE FAILURE"~"FLOWLINE FAILURE"
+  ,probable_cause_edit=="OVERFLOWED"~"OVERFLOW"
+  ,probable_cause_edit=="OVERPRESSURE"~"OVERPRESSURED"
+  ,probable_cause_edit=="PIN HOLE LEAKE"~"PINHOLE LEAK"
+  ,probable_cause_edit=="RUPTURE"~"RUPTURED"
+  ,probable_cause_edit=="TANK OVERFLOWED"~"TANK OVERFLOW"
+  ,probable_cause_edit=="THEFT / VANDELISM"~"THEFT / VANDALISM"
+  ,probable_cause_edit=="VALVE LEFT OPEN."~"VALVE LEFT OPEN"
+  ,probable_cause_edit=="VALVE OPENED"~"VALVE OPEN"
+  ,probable_cause_edit=="WEA"~"WEATHER"
+  ,TRUE~probable_cause_edit))
+  
+data$probable_cause_edit <- factor(data$probable_cause_edit)
+levels(data$probable_cause_edit)
+```
+
+
+
+```{r}
+### spill on water
+
+data$spill_on_water_edit<-toupper((data$spill_on_water_edit))
+data$spill_on_water_edit<-factor(data$spill_on_water_edit)
+
+### status
+
+data$status<-toupper(data$status)
+data$status<-factor(data$status)
+
+
+
+```
+
+
+## clasificacion empresa
+
+Brine Facility: Las instalaciones de salmuera (brine) a menudo están asociadas con las operaciones de extracción y producción de petróleo, donde el agua salina (salmuera) puede ser un subproducto.
+
+Disposal (P&A'D Well): La disposición de pozos perforados y abandonados generalmente está relacionada con la gestión de pozos de petróleo y gas agotados.
+
+Drilling: La perforación de pozos es una actividad fundamental en la exploración y producción de petróleo.
+
+Gathering y Gathering Line: La recolección de petróleo crudo y gas natural desde los pozos y el transporte a instalaciones de procesamiento.
+
+Pits: Los depósitos de almacenamiento temporal de lodos y desechos de perforación asociados con la perforación de pozos de petróleo.
+
+Saltwater Station (Estación de agua salada): Relacionada con el manejo del agua salada producida junto con el petróleo.
+
+SW Line (Línea de agua salada) y SWD (Saltwater Disposal): Relacionados con la gestión y eliminación del agua salada asociada con la producción de petróleo.
+
+Tank Battery y Tank Farm: Instalaciones de almacenamiento de petróleo crudo antes del procesamiento adicional.
+
+Trucking: El transporte de productos relacionados con el petróleo, como el petróleo crudo.
+
+Waste Collection and Skimming: La recolección y eliminación de residuos, que en este contexto puede estar vinculada a residuos producidos en la producción de petróleo.
+
+Water Hauler: El transporte de agua, que podría estar relacionado con la gestión del agua en las operaciones petroleras.
+
+
+
+
+
+
+AMBAS 
+
+COMPLETION y COMPLETIONS: Pueden referirse tanto a la finalización de pozos de petróleo como de pozos de gas después de la perforación.
+
+INJECTION e INJECTION WELL: La inyección de fluidos puede ser parte de las operaciones de recuperación mejorada de petróleo o gas, donde se inyectan diferentes sustancias para aumentar la producción.
+
+PLUGGING: Puede estar relacionado con el tapado de pozos, ya sea en la perforación, abandono o desmantelamiento de pozos de petróleo o gas.
+
+RECTIFIER: Puede referirse a equipos utilizados en instalaciones de procesamiento de petróleo o gas para corregir corrientes eléctricas.
+
+STORAGE: Almacenamiento puede ser relevante para el almacenamiento temporal de petróleo y gas antes de su procesamiento y distribución.
+
+TRANSFER: La transferencia de productos, como petróleo o gas, entre diferentes etapas de la cadena de suministro.
+
+TRANSPORTATION, TRANSPORT, y TRANSPORTATION/DISPOSAL: Pueden estar asociados con el transporte de petróleo y gas desde los lugares de producción hasta las instalaciones de procesamiento o disposición.
+
+PRODUCTION: La producción puede referirse tanto a la producción de petróleo como a la de gas natural.
+
+
+
+
+
+
+GAS 
+
+
+
+CPF (Central Processing Facility): Una instalación de procesamiento central suele estar involucrada en la producción y procesamiento de gas natural.
+
+DCP (Data Control Point o Distributed Control Protocol): Puede referirse a sistemas de control y monitorización utilizados en instalaciones de procesamiento de gas.
+
+DISPOSAL y DISPOSAL FACILITY: Pueden estar relacionados con la disposición de aguas residuales o subproductos de la producción de gas.
+
+DISPOSAL/INJECTION, INJ/DISP, INJ/DISPOSAL, INJECTION/ DISPOSAL, INJECTION/DISPOSAL: Estas frases indican actividades relacionadas con la inyección o disposición de fluidos en operaciones de gas.
+
+FRACKING (Fracturación hidráulica): Una técnica utilizada comúnmente en la producción de gas natural.
+
+GAS PLANT: Una planta de gas se utiliza para procesar y tratar el gas natural.
+
+MIDSTREAM: Se refiere a la parte intermedia de la cadena de suministro del gas, que incluye el transporte y almacenamiento intermedios.
+
+ORPHAN: Puede referirse a pozos de gas abandonados o sin propietario responsable.
+
+OTHER: Puede abarcar diversas actividades relacionadas con la industria del gas.
+
+PIGGING: Un proceso utilizado en las tuberías de gas para inspeccionar y limpiar.
+
+PIPELINE: La infraestructura utilizada para transportar gas desde los pozos hasta las instalaciones de procesamiento.
+
+PLANT, PROCESSING, PROCESSING FACILITY: Instalaciones de procesamiento de gas.
+
+RECTIFIER: Puede referirse a equipos utilizados en instalaciones de procesamiento de gas.
+
+SWD (Saltwater Disposal): La disposición de agua salada, que puede ser un subproducto de las operaciones de gas.
+
+
+
+
+```{r}
+
+# Crear un vector con las palabras
+p <- palabras <- c(
+  "ABANDONED",
+  "BRINE FACILITY",
+  "DISPOSAL (P&A'D WELL)",
+  "DRILLING",
+  "GATHERING",
+  "GATHERING LINE",
+  "PITS",
+  "SALTWATER STATION",
+  "SW LINE",
+  "SWD",
+  "TANK BATTERY",
+  "TANK FARM",
+  "TRUCKING",
+  "WASTE COLLECTION AND SKIMMING"
+)
+
+
+
+A<- c(
+  "COMPLETION", "COMPLETIONS", "INJECTION", "INJECTION WELL",
+  "PLUGGING", "RECTIFIER", "STORAGE", "TRANSFER", "PRODUCTION",
+  "TRANSPORTATION", "TRANSPORT", "TRANSPORTATION/DISPOSAL",
+  "WATER HAULER"
+)
+
+
+
+data<-data%>% mutate(
+  categoria= case_when(
+    grepl(paste(p, collapse="|"), type_operation)~"PETRÓLEO",
+    grepl(paste(A, collapse = "|"),type_operation)~"AMBOS",
+    TRUE~"GAS"
+    
+  )
+)
+
+```
+
+
+# identificacion de base de datos para muestreo a conveniecia
+
+```{r}
+data1<- data %>%  filter(county_edit %in% c("Reeves","Loving","Scurry","Ector","Howard","Midland","Andrews","Yoakum","Martin","Ward" ))
+lista_dataframes <-split(data1, data1$county_edit)
+niveles <- lapply(lista_dataframes, function(data1) unique(data1$operator_rp))
+
+
+# Función para comparar niveles y calcular el porcentaje de similitud
+comparar_niveles <- function(niveles1, niveles2) {
+  total_niveles <- length(unique(c(niveles1, niveles2)))
+  similitud <- length(intersect(niveles1, niveles2)) / total_niveles * 100
+  return(similitud)
+}
+
+# Comparar los niveles entre todos los dataframes
+resultados_similitud <- matrix(0, nrow = length(niveles), ncol = length(niveles))
+for (i in 1:length(niveles)) {
+  for (j in 1:length(niveles)) {
+    resultados_similitud[i, j] <- comparar_niveles(niveles[[i]], niveles[[j]])
+  }
+}
+
+rownames(resultados_similitud) <- colnames(resultados_similitud) <- names(lista_dataframes)
+resultados_similitud
+resultados_filtrados <- resultados_similitud[resultados_similitud > 50]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# seleccion de variables
+
+```{r}
+
+data$spill_on_water_edit<-toupper(data$spill_on_water_edit)
+
+df <- data %>%
+  select(date_of_spill_edit, county,spill_on_water_edit ,type_operation, source, probable_cause_edit, 
+         release_crude_oil_edit, release_prod_water_edit, release_gas, 
+         recovery_crude_oil_edit , recovery_prod_water_edit , status) %>%  filter(spill_on_water_edit == 'YES' & !is.na(type_operation))
+df$año<-as.numeric(format(df$date_of_spill_edit,'%Y'))
+
+df1<-df %>% group_by(año,county,type_operation,source,probable_cause_edit,status) %>% summarise(release_crude_oil_edit=round(sum(release_crude_oil_edit, na.rm = TRUE),0)
+              ,release_prod_water_edit=round(sum(release_prod_water_edit, na.rm = TRUE))
+              ,recovery_crude_oil_edit=sum(recovery_crude_oil_edit, na.rm = TRUE)
+              ,recovery_prod_water_edit=sum(recovery_prod_water_edit, na.rm = TRUE))
+
+a<-df1 %>% filter(release_crude_oil_edit!=0.00)
+
+
+plot(a$release_crude_oil_edit)
+levels(df1$type_operation)
+df$county<-factor(df$county)
+levels(df$type_operation)
+df$release_crude_oil_edit<-round(df$release_crude_oil_edit)
+mo1<-zeroinfl(release_crude_oil_edit ~ release_prod_water_edit +county , data = df1)
+
+
+plot(df1$release_crude_oil_edit)
+df1$release_crude_oil_edit
+df1$release_prod_water_edit
+df1$recovery_crude_oil_edit
+df$recovery_prod_water_edit
+summary(mo1)
+
+central_cleaned$dist<-as.factor(central_cleaned$dist)
+levels(central_cleaned$dist)
+
+```
+

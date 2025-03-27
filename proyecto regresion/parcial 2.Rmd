@@ -1,0 +1,122 @@
+---
+title: "Parcial 2"
+author: "David sebastian gonzalez"
+date: "2023-04-10"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pack<-c("rlang","lubridate","data.table","tidyverse","readxl","writexl","dplyr","beepr","XML","tidyverse","dbplyr","broom","purrr","kohonen","gridExtra","factoextra","audio","dendextend","odbc","DBI","utf8","ROCR","readr","tidyr","e1071","randomForest","stats","base",'outlier',"ggplot2","plotly","reticulate","assertthat","gtools","writexl","openxlsx","zoo","mondate",'olsrr','car','lmtest','TinyTex','knitr',"DHARMa","PerformanceAnalytics","nortest")
+
+#"fabletools","tsibble","fable"
+
+#install.packages("olsrr", dependences=TRUE)
+lapply(pack,require, character.only = TRUE)
+
+
+```
+
+
+# **Prediccion de diabeticos con regresion logistica**
+
+## Introducción 
+
+La diabetes es unos de problemas mas comunes en el mundo y cada año va en aumento, asi lo anuncia "Atlas de la Diabetes de la FID, en la que indica que el número de personas entre 20 y 79 años con diabetes en el mundo, casi se cuadruplicó, pasó de 151 millones en el año 2000 a 537 millones en el 2021 (prevalencia estandarizada de 10,5%).", En un estudio realizado se analizaron 768 personas en un rango de edad entre los 20-89 años donde se identificaron un conjunto de variables para cada persona del genero femenino los cuales son: Pregnancies, Glucose, BloodPressure, SkinThickness, Insulin, BMI, DiabetesPedigreeFunction, Age, Outcome. Y de acuerdo a estos datos recolectados se implementa un modelo predictivo con una regresion logistica la cual identifica si la persona puede ser diabetica o no.
+
+
+## **Descripcion del problema**
+
+La diabetes es una enfermedad crónica que se produce cuando el cuerpo no puede producir suficiente insulina o no puede utilizarla adecuadamente. La insulina es una hormona producida por el páncreas que ayuda a regular los niveles de glucosa en la sangre.
+
+Esta enfermedad es muy problemática si no se controla adecuadamente. Las personas con diabetes tienen un mayor riesgo de desarrollar complicaciones graves, como enfermedades cardiovasculares, enfermedad renal, daño nervioso, problemas de visión, problemas de piel y problemas de pie. El control adecuado de la diabetes incluye la monitorización regular de los niveles de glucosa en la sangre, la alimentación saludable, la actividad física regular y, en algunos casos, el uso de medicamentos para controlar los niveles de glucosa en la sangre. Es importante que las personas con diabetes trabajen en estrecha colaboración con su equipo de atención médica para desarrollar un plan de tratamiento adecuado y minimizar el riesgo de complicaciones.
+
+Con esta problematica se quiere proponer un modelo de regresion logistico para predecir si una persona tiene diabetes o no de acuerdo a las variables del estudio y cuales de estas debemos tener en cuenta; esto con el fin de diagnoticar a las personas a tiempo y evitar que esta enfermedad se agrave en un futuro.
+
+
+
+## **Metodologia**
+
+Todo el calculo matematico del modelo se realiza por medio de R-studio el cual es una editor de codigo del lenguaje estadistico de programacion R.
+
+Se realiza de la siguiente manera:
+
+  + Especificacion del modelo lineal generalizado por medio de la regresion logistica
+  + Ajustes del modelo de acuerdo a los criterios del sistema de hipotesis.
+  + Analsis de valores atipicos e influyentes.
+  + Validacion de supuestos
+  + Interpretacion de resultados.
+  + Concluciones del modelo propuestos, para poder predecir.
+  
+  
+Todo estos con el proposito de encontrar el mejor modelo que nos ayude a predecir el diagnostico de diabetes.
+
+## **Resultados**
+
+
+
+```{r}
+# Base de datos
+rutasmodelos="C:/Users/1192923513/Documents/PERSONAL/universidad/modelos lineales/"
+base<- read.xlsx(str_c(rutasmodelos,"diabetes.xlsx"))
+
+# Ajuste de un modelo logístico.
+modelo_logistico <- glm(Outcome ~ Pregnancies + Glucose +BloodPressure +SkinThickness +Insulin+ BMI, family = binomial(link = "logit"), data= base)
+summary(modelo_logistico)
+
+
+modelo_logistico2 <- glm(Outcome ~ Pregnancies + Glucose   + BMI, family = binomial(link = "logit"), data= base)
+summary(modelo_logistico2)
+
+anova(modelo_logistico2,test = "Chi")
+```
+  
+  
+  
+### Datos influyentes
+
+```{r}
+outlierTest(modelo_logistico2, cutoff=Inf, n.max=10)
+influenceIndexPlot(modelo_logistico2, vars="Cook",main = "Distncia de cook del modelo logistico")
+
+
+
+## Extraer los datos
+base<-base[-c(10,16,79,126,255,262,267,270,299,469,503,511,707),]
+
+modelo_logistico2 <- glm(Outcome ~ Pregnancies + Glucose +BloodPressure  + BMI, family = binomial(link = "logit"), data= base)
+
+```
+
+```{r}
+id<-seq(1,755)
+plot(id,modelo_logistico2$residuals, main = "residuales del modelo en el tiempo")
+vif(modelo_logistico2)
+logodds <- modelo_logistico2$linear.predictors
+boxTidwell(base$Outcome ~ abs(logodds))
+```
+De acuerdo a los valores anteriores vemos que se cumplen todos los supuestos asi que se afirma el modelo logistico mas optimo es este.
+
+**EL MODELO PROPUESTOS ES:**
+
+$$\frac{\text{tiene diabetes}}{\text{no tiene diabetes}}=-8.8+0.12 \cdot Pregnancies + 0.036 \cdot Glucose + 0.0912 \cdot BMI $$
+
+
+## Concluciones.
+
+de acuerdo a los resultados hay 3 factores importantes en relacion con el modelo que se deben tener en cuenta los cuales son la glucosa,numero de embarazos que ha tenido y el indice de masa corporal, los cuales nos pueden indicar si la mujer sufre de diabetes o no.
+
+la interpretacion de las variables en el modelo son las siguientes:
+
+
+```{r}
+exp(0.1220)
+exp(0.036)
+exp(0.091)
+```
+que por cada 1 embarazo que tenga la mujer hay mayor probabilidad de que sufra diabetes.
+tambien por cada unidad de gluca que aumente en la sangre de la mujer sigue aumentando la probabilidad de que sufra diabetes.
+

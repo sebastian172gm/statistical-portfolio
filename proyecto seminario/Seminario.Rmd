@@ -1,0 +1,104 @@
+---
+title: "Seminario"
+output: html_document
+date: "2024-01-24"
+---
+
+```{r}
+library(readr)
+library(dplyr)
+install.packages("dplyr")
+central_cleaned <- read_csv("central_cleaned.csv")
+```
+
+```{r}
+data<-central_cleaned[, colSums(is.na(central_cleaned))<= (2000)]   
+data1<-c()
+data1<-data[,14:15]
+data1<-cbind(data1,data[,17])
+data1<-cbind(data1,data[,27:33])
+data1<-cbind(data1,data[,35])
+
+```
+
+```{r}
+data1$type_operation <- trimws(data1$type_operation)
+data1$type_operation <- toupper(data1$type_operation)
+data1$type_operation <- factor(data1$type_operation)
+levels(data1$type_operation)
+```
+
+```{r}
+data1<-data1 %>% mutate(type_operation=case_when(
+  type_operation=="COMPLETIONS"~"COMPLETION"
+  ,type_operation=="INJECTION/ DISPOSAL"~"INJECTION/DISPOSAL"
+  ,type_operation=="PRODUCTIOM"~"PRODUCTION"
+  ,type_operation=="TRANSPORATION"~"TRANSPORTATION"
+  ,type_operation=="TRANSPORT"~"TRANSPORTATION"
+  ,type_operation=="TRASPORTATION"~"TRANSPORTATION"
+  ,type_operation=="INJ/DISP"~"INJECTION/DISPOSAL"
+  ,type_operation=="INJ/DISPOSAL"~"INJECTION/DISPOSAL"
+  ,TRUE~type_operation))
+
+data1$type_operation <- factor(data1$type_operation)
+levels(data1$type_operation)
+```
+
+```{r}
+data1$source <- trimws(data1$source)
+data1$source <- toupper(data1$source)
+data1$source <- factor(data1$source)
+levels(data1$source)
+```
+
+```{r}
+data1<-data1 %>% mutate(source=case_when(
+  source=="?"~"UNKNOWN"
+  ,source=="FLARESTACK"~"FLARE STACK"
+  ,source=="FLOW LINE"~"FLOWLINE"
+  ,source=="FRAC TANKS"~"FRAC TANK"
+  ,source=="GATHERER"~"GATHERING"
+  ,source=="GATERING LINE"~"GATHERING LINE"
+  ,source=="HP SEPARATOR"~"HIGH PRRESSURE SEPARATOR"
+  ,source=="PILELINE"~"PIPELINE"
+  ,source=="PIPE"~"PIPELINE"
+  ,source=="SEPERATOR"~"SEPARATOR"
+  ,source=="TANK BATERY"~"TANK BATTERY"
+  ,source=="TANK BATTTERY"~"TANK BATTERY"
+  ,source=="VAC TRUCK"~"VACUUM TRUCK"
+  ,source=="WELL HEAD"~"WELLHEAD"
+  ,TRUE~source))
+  
+data1$source <- factor(data1$source)
+levels(data1$source)
+```
+
+```{r}
+data1$probable_cause_edit <- trimws(data1$probable_cause_edit)
+data1$probable_cause_edit <- toupper(data1$probable_cause_edit)
+data1$probable_cause_edit <- factor(data1$probable_cause_edit)
+levels(data1$probable_cause_edit)
+```
+
+```{r}
+data1<-data1 %>% mutate(probable_cause_edit=case_when(
+  probable_cause_edit=="?"~"UNKNOWN"
+  ,probable_cause_edit=="BALL VALVE FAILED"~"BALL VALVE FAILURE"
+  ,probable_cause_edit=="EQUIPEMENT MALFUNCTION"~"EQUIPMENT MALFUNCTION"
+  ,probable_cause_edit=="FAILURE"~"FAILED"
+  ,probable_cause_edit=="FLOW LINE FAILURE"~"FLOWLINE FAILURE"
+  ,probable_cause_edit=="OVERFLOWED"~"OVERFLOW"
+  ,probable_cause_edit=="OVERPRESSURE"~"OVERPRESSURED"
+  ,probable_cause_edit=="PIN HOLE LEAKE"~"PINHOLE LEAK"
+  ,probable_cause_edit=="RUPTURE"~"RUPTURED"
+  ,probable_cause_edit=="TANK OVERFLOWED"~"TANK OVERFLOW"
+  ,probable_cause_edit=="THEFT / VANDELISM"~"THEFT / VANDALISM"
+  ,probable_cause_edit=="VALVE LEFT OPEN."~"VALVE LEFT OPEN"
+  ,probable_cause_edit=="VALVE OPENED"~"VALVE OPEN"
+  ,probable_cause_edit=="WEA"~"WEATHER"
+  ,TRUE~probable_cause_edit))
+  
+data1$probable_cause_edit <- factor(data1$probable_cause_edit)
+levels(data1$probable_cause_edit)
+```
+

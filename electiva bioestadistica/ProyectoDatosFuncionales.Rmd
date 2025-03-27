@@ -1,0 +1,197 @@
+---
+title: "¿Cómo simular un análisis en correlación canónica funcional?"
+author: "Nicolas Cortes, Betsy, Jonathan Pasachova y Jhonier Rangel"
+date: "2023-04-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# ¿Cómo simular un análisis en correlación canónica funcional?
+
+La correlación canónica es una técnica de análisis multivariado que se utiliza para evaluar la relación lineal entre dos conjuntos de variables. Supongamos que tenemos dos matrices de datos $X$ y $Y$, donde $X$ tiene dimensiones $n \times p$ y $Y$ tiene dimensiones $n \times q$. La correlación canónica busca encontrar los vectores de peso $a$ y $b$ que maximizan la correlación entre las combinaciones lineales de las variables en $X$ y $Y$:
+
+\begin{equation}
+r_{c1} = \max_{a,b} \frac{\sum_{i=1}^{n} a_i X_i}{\sqrt{\sum_{i=1}^{n} a_i^2} \sqrt{\sum_{i=1}^{n} b_i^2 Y_i}}
+\end{equation}
+
+Donde $X_i$ y $Y_i$ son las i-ésimas filas de las matrices $X$ e $Y$, respectivamente.
+
+La solución para el primer par canónico de vectores de peso se puede encontrar resolviendo el problema de maximización anterior mediante técnicas de álgebra lineal, como descomposición en valores singulares o eigenanálisis. Este primer par canónico maximiza la correlación entre las dos combinaciones lineales y se llama coeficiente de correlación canónica de primer orden ($r_{c1}$).
+
+Se pueden encontrar más pares canónicos de vectores de peso mediante un proceso iterativo similar, con la restricción de que los pares posteriores sean ortogonales a los pares anteriores. Los coeficientes de correlación canónica de orden superior ($r_{c2}, r_{c3}, ..., r_{cp}$) miden la correlación entre las combinaciones lineales restantes de las dos matrices.
+
+En resumen, la correlación canónica es una técnica útil para analizar la relación entre dos conjuntos de variables y encontrar combinaciones lineales que maximizan la correlación entre ellos.
+
+# Matrices para sacar los valores y vectores propios
+
+Para deducir las matrices asociadas a la correlación canónica, primero debemos calcular las matrices de covarianza y de intercovarianza entre las variables en $X$ y $Y$. Supongamos que las variables en $X$ son $x_1, x_2, ..., x_p$ y las variables en $Y$ son $y_1, y_2, ..., y_q$. Entonces, las matrices de covarianza entre las variables de $X$ y $Y$ son:
+
+\begin{equation}
+S_{XX} = \frac{1}{n} \sum_{i=1}^{n} (X_i - \bar{X})(X_i - \bar{X})^T
+\end{equation}
+
+\begin{equation}
+S_{YY} = \frac{1}{n} \sum_{i=1}^{n} (Y_i - \bar{Y})(Y_i - \bar{Y})^T
+\end{equation}
+
+Y la matriz de intercovarianza es:
+
+\begin{equation}
+S_{XY} = \frac{1}{n} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})^T
+\end{equation}
+
+donde $\bar{X}$ y $\bar{Y}$ son los vectores de medias de las variables en $X$ y $Y$, respectivamente.
+
+Luego, podemos construir la matriz de correlación canónica $R$ utilizando la matriz inversa de la raíz cuadrada de las matrices de covarianza y de intercovarianza. La matriz de correlación canónica se define como:
+
+\begin{equation}
+R = \begin{bmatrix}
+r_{c1} & 0 & \cdots & 0 \
+0 & r_{c2} & \cdots & 0 \
+\vdots & \vdots & \ddots & \vdots \
+0 & 0 & \cdots & r_{cp}
+\end{bmatrix}
+\end{equation}
+
+donde $r_{c1}, r_{c2}, ..., r_{cp}$ son los coeficientes de correlación canónica de orden 1 a $p$. Estos coeficientes se pueden obtener a partir de los valores propios de la matriz $S_{XX}^{-1}S_{XY}S_{YY}^{-1}S_{YX}$.
+
+Finalmente, podemos obtener las matrices de pesos canónicos $A$ y $B$ utilizando los vectores propios de la matriz $S_{XX}^{-1}S_{XY}S_{YY}^{-1}S_{YX}$. Los vectores propios corresponden a los vectores de peso que maximizan la correlación canónica entre las combinaciones lineales de las variables en $X$ y $Y$. Los vectores propios se ordenan de acuerdo a sus correspondientes valores propios, que son iguales a los coeficientes de correlación canónica.
+
+La matriz de pesos canónicos $A$ se define como:
+
+\begin{equation}
+A = \begin{bmatrix}
+a_{11} & a_{12} & \cdots & a_{1p} \
+a_{21} & a_{22} & \cdots & a_{2p} \
+\vdots & \vdots & \ddots & \vdots \
+a_{p1} & a_{p2} & \cdots & a_{pp}
+\end{bmatrix}
+\end{equation}
+
+y la matriz de pesos canónicos $B$ se define como:
+
+\begin{equation}
+B = \begin{bmatrix}
+b_{11} & b_{12} & \cdots & b_{1q} \
+b_{21} & b_{22} & \cdots & b_{2q} \
+\vdots & \vdots & \ddots & \vdots \
+b_{q1} & b_{q2} & \cdots & b_{qq}
+\end{bmatrix}
+\end{equation}
+
+Donde $a_{ij}$ y $b_{ij}$ son los elementos de las matrices de pesos canónicos $A$ y $B$, respectivamente. Cada columna de $A$ y $B$ contiene los pesos canónicos correspondientes a la combinación lineal de las variables en $X$ y $Y$, respectivamente.
+
+Por último, las combinaciones lineales canónicas se pueden obtener mediante la multiplicación de las matrices de pesos canónicos y las matrices de datos originales $X$ y $Y$, respectivamente:
+
+\begin{equation}
+U = XA
+\end{equation}
+
+\begin{equation}
+V = YB
+\end{equation}
+
+donde $U$ y $V$ son las combinaciones lineales canónicas para las variables en $X$ y $Y$, respectivamente.
+
+# En datos funcionales
+
+El análisis en correlación canónica también se puede aplicar a datos funcionales. En este caso, las variables en $X$ y $Y$ son funciones en lugar de variables escalares.
+
+Supongamos que tenemos $n$ pares de funciones $(x_i(t), y_i(t)), i = 1, 2, ..., n$, donde $x_i(t)$ es una función en un dominio común $T_x$ y $y_i(t)$ es una función en otro dominio común $T_y$. Queremos encontrar la relación entre estas dos series de funciones y determinar si existe una correlación canónica significativa entre ellas.
+
+En el análisis en correlación canónica para datos funcionales, las matrices de covarianza y de intercovarianza se definen como:
+
+\begin{equation}
+S_{XX}(s, t) = \frac{1}{n} \sum_{i=1}^{n} \left(x_i(s) - \bar{x}(s)\right)\left(x_i(t) - \bar{x}(t)\right)
+\end{equation}
+
+\begin{equation}
+S_{YY}(s, t) = \frac{1}{n} \sum_{i=1}^{n} \left(y_i(s) - \bar{y}(s)\right)\left(y_i(t) - \bar{y}(t)\right)
+\end{equation}
+
+\begin{equation}
+S_{XY}(s, t) = \frac{1}{n} \sum_{i=1}^{n} \left(x_i(s) - \bar{x}(s)\right)\left(y_i(t) - \bar{y}(t)\right)
+\end{equation}
+
+donde $\bar{x}(s)$ y $\bar{y}(t)$ son las medias de las funciones $x_i(s)$ y $y_i(t)$, respectivamente.
+
+Luego, se puede calcular la matriz de correlación canónica $R$ y los coeficientes de correlación canónica $r_{c1}, r_{c2}, ..., r_{cp}$ de manera similar a como se hace en el caso de variables escalares.
+
+Además, se pueden obtener las funciones de peso canónicas $a_i(s)$ y $b_i(t)$ utilizando los vectores propios correspondientes a los valores propios de la matriz $S_{XX}^{-1}S_{XY}S_{YY}^{-1}S_{YX}$.
+
+Por último, se pueden obtener las combinaciones lineales canónicas $U(t)$ y $V(t)$ para las funciones en $X$ y $Y$, respectivamente, mediante la siguiente ecuación:
+
+\begin{equation}
+U(t) = \sum_{i=1}^{p} a_i x_i(t)
+\end{equation}
+
+\begin{equation}
+V(t) = \sum_{i=1}^{p} b_i y_i(t)
+\end{equation}
+
+donde $a_i$ y $b_i$ son los vectores de peso canónico correspondientes a los coeficientes de correlación canónica $r_{ci}$ y $x_i(t)$ y $y_i(t)$ son las funciones de la $i$-ésima combinación lineal canónica.
+
+# Caso de simulación.
+
+```{r}
+# Generar la distribución normal multivariada
+library(MASS)
+
+# Definir parámetros de la distribución multivariada
+n <- 400
+mu <- rep(0,10)
+Sigma <- matrix(c(1,rep(0,4),0.8,rep(0,5),1,rep(0,4),0.7,rep(0,5),1,rep(0,4),0.6,rep(0,5),1,rep(0,4),0.5,rep(0,5),1,rep(0,4),0.4,0.8,rep(0,4),1,rep(0,5),0.7,rep(0,4),1,rep(0,5),0.6,rep(0,4),1,rep(0,5),0.5,rep(0,4),1,rep(0,5),0.4,rep(0,4),1),10,10)
+Sigma
+# Generar observaciones aleatorias
+set.seed(123)
+x <- mvrnorm(n, mu, Sigma)
+
+# Ver los primeros 6 valores generados
+head(x)
+```
+```{r}
+sxx<-cov(x[,1:5])
+sxx
+syy<-cov(x[,6:10])
+syy
+sxy<-cov(x[,1:5],x[,6:10])
+sxy
+syx<-cov(x[,6:10],x[,1:5])
+syx
+```
+
+# Sacar las direcciones que maximizan la correlación
+
+Estas se sacan hallando los valores y vectores propios de las siguientes matrices
+
+- Primero la matriz sobre el primer vector
+
+```{r}
+P1<- solve(sxx)%*%sxy%*%solve(syy)%*%syx
+v1<-eigen(P1)
+v1
+```
+
+
+
+Como las correlaciones están elevadas al cuadrado para exponer las reales se debe sacar raiz cuadrada
+```{r}
+r<-sqrt(v1$values);r
+```
+
+- Luego la matriz sobre el segundo vector
+
+```{r}
+P2<- solve(syy)%*%syx%*%solve(sxx)%*%sxy
+v2<-eigen(P2)
+v2
+```
+Evaluar si los valores propios son iguales
+
+```{r}
+round(v1$values,3)==round(v2$values,3)
+```
+

@@ -1,0 +1,272 @@
+---
+title: "Diseño de experimentos - Artículo"
+author: "David Sebastian "
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(ggplot2)
+library(lmtest)
+library(nortest)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(gridExtra)
+library(ggplot2)
+library(agricolae)
+library(glmtoolbox)
+#library(ACSWR)
+library(readxl)
+library(xtable)
+library(gee)
+library(geepack)
+library(MASS)
+```
+
+
+```{r}
+
+
+base <- read_excel("C:/Users/usuario/Documents/Universidad/proyecto seminario/Acoustic_Extinguisher_Fire_Dataset/Acoustic_Extinguisher_Fire_Dataset.xlsx", 
+    sheet = "Dataset")
+
+#base <- read_excel("/cloud/project/Artículo/base experimentos.xlsx")
+
+base <- base %>%
+  mutate(SIZE = ifelse(SIZE == '7cm', '07cm', SIZE))
+
+attach(base)
+head(base)
+```
+
+
+# **Modelo ANOVA**
+
+$$y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \epsilon_{ijk}$$
+
+Donde:
+- $\mu$ es la media de los efectos,
+- $\alpha_i$ es el efecto debido al tipo de combustible $i$,
+- $\beta_j$ es el efecto debido al tamaño de la llama del fuego $j$,
+- $(\alpha\beta)_{ij}$ es el efecto de interacción entre el tipo de combustible $i$ y el tamaño de la llama del fuego $j$,
+- $\epsilon_{ijkl}$ son los errores del modelo  $\sim  N(0, \sigma^2)$.
+
+
+```{r}
+modelo= lm(DESIBEL ~ FUEL*SIZE, data=base)
+anova=aov(modelo)
+summary(anova)
+```
+
+Como la variable 'FUEL' ni la interacción 'FUEL:SIZE' son significativas, se retiran del modelo y se deja solo la variable 'SIZE'
+
+```{r}
+modelo2= lm(DESIBEL ~ SIZE, data=base)
+anova_2=aov(modelo2)
+summary(anova_2)
+print(xtable(summary(anova_2)), include.rownames = FALSE)
+```
+
+
+
+#**Comparación de medias**
+
+- Método de Newman-Keuls (N-K)
+
+```{r echo=TRUE,size=}
+
+a<-SNK.test(anova_2,"SIZE",group=TRUE,console=FALSE,main="SIZE")
+a
+
+
+```
+
+Los grupos "20cm" y "16cm" tienen la misma etiqueta "a", lo que indica que no hay una diferencia significativa entre sus medias en términos de "DESIBEL".
+
+Los grupos "12cm" y "07cm" tienen la misma etiqueta "b", lo que indica que no hay una diferencia significativa entre sus medias en términos de "DESIBEL".
+
+
+**Validación de supuestos:**
+
+
+**Homocedasticidad**
+
+-  Prueba de Levene
+
+```{r, include=FALSE}
+# librería para la prueba de Levene
+library(lawstat)
+library(VGAM)
+```
+
+```{r}
+a<-levene.test(anova_2$residuals, base$SIZE)
+a
+a$statistic
+print(xtable(levene.test(anova_2$residuals, base$SIZE),"Analisis de varianza"),booktabs = TRUE)
+
+
+```
+
+A partir de los resultados obtenidos en la prueba, no se rechaza la hipótesis de homocedasticidad entre los residuales, pues el valor p es igual a 0.05635, mayor al nivel de significancia del 5\%.
+
+ 
+- Prueba de Hartley
+
+```{r}
+size<-factor(base$SIZE)
+
+varianzas_por_size <- tapply(base$DESIBEL, size, var)
+t(varianzas_por_size)
+print(xtable(t(t(varianzas_por_size)),"Analisis de varianza"),booktabs = TRUE)
+```
+
+```{r}
+Hartley<- max(varianzas_por_size)/min(varianzas_por_size)
+Hartley
+
+#Se compara con una F(4,4,0.05) 
+pf(Hartley, 4, 4)
+```
+
+A partir de los resultados obtenidos en la prueba, al igual que en la anterior, no se rechaza la hipótesis de homocedasticidad entre los residuales, pues el valor p es igual a 0.5239, mayor al nivel de significancia del 5\%.
+
+
+
+**Normalidad**
+
+- Anderson-Darling
+
+```{r results=}
+# Prueba de normalidad de Anderson-Darling
+library(nortest)
+ad.test(anova_2$residuals)
+
+qqnorm(anova_2$residuals)
+qqline(anova_2$residuals, col = 7)
+```
+
+A partir de los resultados obtenidos en la prueba, se rechaza la hipótesis de normalidad en los residuales, pues el valor p es $< 2.2e^{-16}$, menor al nivel de significancia del 5\%.
+
+
+
+
+
+# **Limpieza de datos**
+
+```{r}
+
+base$SIZE<-as.factor(base$SIZE)
+base$FUEL<-as.factor(base$FUEL)
+
+```
+
+
+## **Diseño binomial**
+
+```{r}
+
+
+m1 <- glm(STATUS ~ FUEL + SIZE + DISTANCE+AIRFLOW+FREQUENCY+DESIBEL,
+        data = base, family = binomial(link = "logit"))
+
+summary(m1)
+
+anova(m1, test = "Chi")
+
+
+
+21328.5/(21328.5+6671.4)
+
+(21328.5-6671.4)/21328.5
+# Calcular el R^2 de McFadden
+null_deviance <- 21328.5
+residual_deviance <- 6671.4
+mcfadden_R2 <- 1 - (residual_deviance / null_deviance)
+mcfadden_R2
+
+```
+
+## Modelo Lineal Generalizado 
+
+Luego de realizar el anterior analisis descriptivo corto, se procede a proponer un modelo lineal generalizado con función de distribución binomial y tres tipos de funciones de enlace:
+
+- Modelo Lineal Generalizado con función de distribución Binomial y función de enlace logit:
+
+```{r}
+fit1<-glm(STATUS ~ FUEL + SIZE + DISTANCE+AIRFLOW+FREQUENCY+DESIBEL,
+        data = base, family = binomial(link = "logit"))
+
+summary(fit1)
+```
+
+- Modelo Lineal Generalizado con función de distribución Binomial y función de enlace probit:
+
+```{r}
+fit2<-glm(STATUS ~ FUEL + SIZE + DISTANCE+AIRFLOW+FREQUENCY+DESIBEL,
+        data = base, family = binomial(link = "probit"))
+
+summary(fit2)
+```
+
+- Modelo Lineal Generalizado con función de distribución Binomial y función de enlace cloglog:
+
+```{r}
+fit3<-glm(STATUS ~ FUEL + SIZE + DISTANCE+AIRFLOW+FREQUENCY+DESIBEL,
+        data = base, family = binomial(link = "cloglog"))
+summary(fit3)
+```
+
+Ahora, con base en el AIC y BIC de cada modelo se concluye que el mejor de los tres, es el realizado con la función de enlace cloglog (modelo3), pero su interpretación es complicada, por lo tanto se elige el modelo 2 con función de enlace probit.
+
+```{r}
+c<-cbind(c("Modelo 'fit1' (enlace 'logit')","AIC:",AIC(fit1),
+           "BIC:",BIC(fit1),"Deviance:",deviance(fit1)),
+         c("Modelo 'fit2' (enlace 'probit')","AIC:",AIC(fit2),
+           "BIC:",BIC(fit2),"Deviance:",deviance(fit2)),
+         c("Modelo 'fit3' (enlace 'cloglog')","AIC:",AIC(fit3),
+           "BIC:",BIC(fit3),"Deviance:",deviance(fit3)))
+kable(c)
+```
+
+En este caso, despues de rechazar el modelo cloglog, el modelo que más se ajusta es con la función de enlace "probit" ya que su AIC, BIC y deviance son menores comparados con el modelo 1. 
+
+Como existen variables que no son significativas en el modelo, se revisa quitando variables que no son significativas y se modifica la cantidad de los datos de manera aleatoria para disminuir el AIC.
+
+
+# multicolinealidad
+
+```{r}
+
+library(car)
+vif(fit2)
+```
+
+## envelope
+
+```{r}
+envelope(m1)
+```
+
+
+```{r}
+par(mfcol = c(2, 2))
+plot(m1) 
+```
+
+
+## Resultados del modelo final ajustado
+
+
+El mejor modelo ajustado al final fue:
+
+\[Estado = -0.37(Intercept)	 -0.36994339  -0.74888078FUELkerosene -0.43030100FUELthinner  -0.62578370SIZE12cm    
+ -0.86195755SIZE14cm  -1.78727920SIZE16cm  -1.94935318SIZE20cm   -0.01816039DISTANCE+0.28064866AIRFLOW  -0.02915135FREQUENCY  + 0.02719421  DESIBEL
+\] 
+```{r}
+coef(fit2)
+```
+
+

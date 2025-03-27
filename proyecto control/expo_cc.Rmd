@@ -1,0 +1,151 @@
+---
+title: "Informe de control"
+author: "David Sebastian Gonzalez"
+date: "26/5/2021"
+output:
+  pdf_document:
+    toc: yes
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(qcc)
+require(knitr)
+
+```
+
+# 1. Introducción
+
+A lo largo de esta situación actual que vive el país la cual es una pandemia incontrolable con dificultades notable en cuanto a situaciones sociales, económicas entre otras, pero gracias a el desarrollo tecnológico y conectivo, se ha podido tener un consumo constante y la reactivación de la economía, es así como el cambio se ve reflejado, aparecen las plataformas, tiendas virtuales, etc. entonces cuando entra al mercado un servicio fundamental que es la mensajería; el cual se estará estudiando un caso específico, EntregaYA es una plataforma tecnológica creada hace 1 año la cual fue éxito gracias a su modelo de negocio, su principal propósito es la entrega de su servicio de mensajería por medio de motociclistas y ciclistas los cuales tiene la posibilidad de movilizarse con más facilidad en la ciudad. Es aquí donde el control de calidad y la estadística compenetran para formar un método de estudio que permita la optimización de los procesos del servicio y así garantizar la calidad del mismo.
+
+daremos una descripción básica del problema en la cual se aplicaran metodos de control y así ayudar que la empresa brinde un servicio óptimo. En esta empresa durante los últimos meses se han presentado inconvenientes un bajo requerimiento del servicio, se quiere identificar el problema así que se les hicieron consultas a los clientes por su falta de pedidos y ellos manifestaron que el servicio de entrega se demora mucho en llegar, de este modo es como la empresa requiere que se controle el tiempo estimado de entrega de las rutas que hace cada mensajero vinculado a la empresa por su descontento hacia este servicio.
+
+
+
+# 2. Objetivos
+
+Aplicar el control estadístico de la calidad al proceso de entrega de mensajería con el fin de mejorar la calidad, evitar el rechazo de la falta de uso del servicio, para así entregar al cliente final, un servicio confiable y seguro, y de mismo modo optimizar la productividad en la empresa.
+
+
+# 3. Objetivos específicos
+
+- Conocer el proceso del tiempo estimado de entrega de productos de las rutas asignadas a los mensajeros de la empresa EntregaYA.
+- Identificar etapas de inspección del proceso que requieran especial atención en cuanto a control de la calidad, que puedan ser analizadas con ayuda de la carta $\bar{x}$ y $R$ y que sirvan como base para la toma de decisiones en cuanto a herramientas de control estadístico y planes de acción o mejora.
+- Analizar los procesos inspeccionados encontrados al aplicarle un control estadístico y poder inferir la causa y/o defectos encontrados en estos. 
+- diseñar un plan de acción para abordar y tratar las causas y/o defectos encontrados, así como para controlar el tiempo del proceso de entrega de productos de los clientes.
+
+
+# 4. Datos obtenidos
+
+Los datos obtenidos mediante la empresa que se van a estudiar son los tiempos estimados diarios que se demoran en la entrega de una ruta dada por la solicitud de servicio de entrega de los clientes a 8 mensajeros durante un periodo de 27 días lo que es igual a un periodo mensual de proceso de la empresa.
+
+\\
+
+```{r echo=FALSE}
+set.seed(3350)
+Días<-1:27
+x1<-round(rnorm(22,250,90),1)
+x11<-round(rnorm(5,600,50),1)
+x1<-c(x1, x11)
+x2<-round(rnorm(27,250,80),1)
+x2[c(4,17)]<-c(400,410)
+x3<-round(rnorm(22,230,80),1)
+x3<-c(x3, x11)
+x4<-round(rnorm(27,200,50),1)
+x4[c(6,23)]<-c(400,410)
+x5<-round(rnorm(27,200,100),1)
+x5[25]<-round(mean(x5),1)
+x6<-round(rnorm(27,215,50),1)
+x7<-round(rnorm(27,200,90),1)
+x8<-round(rnorm(27,250,10),1)
+data<-data.frame(Días,x1,x2,x3,x4,x5,x6,x7,x8)
+kable(data)
+```
+
+# 3. control estadistico
+
+## 3.2. Fase I
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+xb<-qcc(data[2:9],type = "xbar", data.name = "Tiempo estimado de entrega diaria de mensajero")
+xb
+R<-qcc(data[2:9], type = "R",data.name = "Tiempo estimado de entrega diaria de mensajero")
+R
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+data1<-data[!(data$Días)==24,]
+data1<-data1[!(data1$Días)==27,]
+
+R<-qcc(data1[2:9], type = "R",data.name = "Tiempo estimado de entrega diaria de mensajero")
+R
+
+```
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+xb<-qcc(data1[2:9],type = "xbar", data.name = "Tiempo estimado de entrega diaria de mensajero")
+xb
+```
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+cusum(data1[2:9], data.name = "Tiempo estimado de entrega diaria de mensajero")
+```
+
+## 3.3 Causas de puntos fuera de control
+
+Al hacer el control estadístico a los datos obtenidos se obtuvieron resultados en que había violaciones en los días 24 y 27 lo cuales se indago sobre los motivos en que los mensajeros tuvieron problemas estos días, manifestaron que uno tuvo problemas técnicos con la cicla en los cuales se demoró con la entrega rápida de los productos, otros manifestaban que las direcciones dadas por los clientes no eran las asertivas y por estos motivos los mensajeros no entregaban los pedidos rápidos
+
+luego de hacer el control estadístico y eliminar estas violaciones, se controla la carta $\bar{x}$ pero aparecen nuevas violaciones en la carta $R$ la cual nos indica que la variación entre los días desde el 22 a la 26, indagamos más sobre las posibles causas de estos rangos  y vemos que los encargados de ruteos estaban dando las rutas a los mensajeros con puntos muy lejanos entre cada dirección, entonces a ver esto inferimos que por este motivo los mensajeros se estaban demorando más en realizar las rutas propuestas con cierto tiempo promedio.
+
+## 3.4 Fase de Inspección.
+
+```{r echo=FALSE}
+set.seed(3356)
+Días<-1:15
+x12<-round(rnorm(10,250,90),1)
+x112<-round(rnorm(5,440,50),1)
+x12<-c(x12, x11)
+x22<-round(rnorm(15,250,50),1)
+x32<-round(rnorm(15,230,30),1)
+x42<-round(rnorm(15,250,50),1)
+x52<-round(rnorm(15,260,50),1)
+x62<-round(rnorm(15,230,50),1)
+x72<-round(rnorm(15,220,90),1)
+x82<-round(rnorm(15,250,10),1)
+data3<-data.frame(Días,x12,x22,x32,x42,x52,x62,x72,x82)
+
+```
+
+```{r echo=FALSE}
+xb1<-qcc(data1[2:9],type = "xbar", data.name = "Tiempo estimado de entrega diaria de mensajero",newdata = data3)
+xb1
+R<-qcc(data1[2:9], type = "R",data.name = "Tiempo estimado de entrega diaria de mensajero",newdata = data3)
+R
+
+cusum(data1[2:9], data.name = "Tiempo estimado de entrega diaria de mensajero",newdata = data3)
+```
+
+
+
+# 5. conclusiones
+
+- De acuerdo con los datos obtenidos con el análisis del control estadístico de calidad encontramos las causas de la demora por tiempo de los mensajeros al entregar en los cuales se habló con ellos y se les comento de los posibles ellos que estaban teniendo en la empresa, por lo tanto, al inspeccionarlos en un tiempo de 15 días después de este análisis de control se ve una mejora en el tiempo estimado por día de entrega.
+
+- Se pudieron controlar las cartas de control de la empresa en este sector de mensajería, pero hubo inconvenientes en los rangos de tiempo de un día a otro se tiene que seguir inspeccionando en días posteriores y encontrar las posibles causas de estos rangos y así buscar soluciones a estos problemas.
+
+
+# 6. Bibliografias
+
+- [1] González J. Alejandre J. Allueva, A. Técnicas estadísticas de control de calidad. 2000. \\
+- [2] D. Besterfield. Control de Calidad. 1995. \\
+- [3] W. Evans. J.and Lindsay. Administración y control de la calidad. 2000. \\
+- [4] J Guaspari. Erase Una Vez Una Fábrica. 1996. \\
+- [5] De La Vara R. Gutiérrez, H. . Control Estadístico de Calidad y Seis Sigma. 2004. \\
+- [6] F.and Bingham R Juran, J.and Gryna. Manual de Control de Calidad. 2005. \\
+- [7] H. Kume. Herramientas básicas para el mejoramiento de la calidad. 2002. \\
+- [8] D. Montgomery. Control estadístico de la calidad. 1985. \\
+- [9] J. Vargas. Control Estadístico de Calidad. 2006. \\
+- [10] https://www.3ciencias.com/wp-content/uploads/2018/08/Control-estad%C3%ADstico-de-la-calidad.pdf \\
+

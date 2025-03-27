@@ -1,0 +1,137 @@
+---
+title: "ANALISIS DESCRIPTIVO"
+author: "David Sebastian Gonzalez"
+date: "11/4/2021"
+output:
+  html_document:
+    highlight: pygments
+    toc_float: yes
+    theme: cerulean
+    toc: yes
+---
+
+```{r setup, include=FALSE, warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# LIBRERIAS
+require(reader)
+require(readxl)
+library(tidyverse)
+library(flextable)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+require(rmdformats)
+library(DescTools)
+library(janitor)
+library(broom)
+library(EnvStats)
+```
+
+# Introduccion
+
+Estos son los datos de contaminación que tanto gustan a los autores de artículos sobre regresión de crestas.
+Los datos incluyen mediciones de la tasa de mortalidad y variables explicativas (contaminación del aire, socioeconómicas y meteorológicas) para 60 ciudades de EE. UU. en 1960.
+En EE.UU. de 1960 era una epoca en la que se esta viviendo una postguerra la cual tenia varias concecuencias como socioculturales, Uno de los movimientos sin violencia en los Estados Unidos buscaba resolver las ilegalidades constitucionales de los derechos civiles, especialmente la generalizada segregación racial, la antigua Segregación en la reconstrucción de las personas negras en el sur por los gobiernos dominados por gente blanca, y la constante discriminación racial en trabajos, vivienda y acceso a lugares públicos tanto en el norte como el sur de Estados Unidos. Con esto buscamos contextualizar algunas variables expuestas en la bas de datos de la tasa de mortalidad.
+
+Fuente: McDonald, G.C. y Schwing, R.C. (1973) 'Inestabilidades de regresión
+estimaciones que relacionan la contaminación del aire con la mortalidad ', Technometrics, vol.15, 463-482
+
+
+Variables en orden: 
+
+- PREC   Precipitación media anual en pulgadas.
+- 3JANT  Temperatura promedio de enero en grados F.
+- JULT   Lo mismo para julio
+- OVR65  % de la población de 1960 de las áreas estadísticas metropolitanas estándar          de 65 años o más.
+- POPN   Tamaño promedio del hogar
+- EDUC   Años escolares promedio completados por los mayores de 22
+- HOUS   % de viviendas sólidas y con todas las comodidades
+- DENS   Población por milla cuadrada en áreas urbanizadas, 1960
+- NONW   % de población no blanca en áreas urbanizadas, 1960
+- WWDRK  % empleado o empleada en ocupaciones de cuello blanco.
+- POOR   % de familias con ingresos menores a $3000
+- HC     Potencial relativo de contaminación por hidrocarburos 
+- NOX    Lo mismo para los óxidos nítricos.
+- SO@    Lo mismo para el dióxido de azufre 
+- HUMID  % De humedad relativa promedio anual a las 1:00 pm
+- MORT   Tasa de mortalidad total ajustada por edad por 100.000
+
+# Datos explorador de la tasa de mortalidad de ciudades de Estados Unidos.
+
+```{r}
+datos<-read_excel("~/electiva/base de datos mcdonalds.xlsx")
+head(datos,3)
+```
+
+```{r include=FALSE}
+meanSd <- function(x, digits=2, na.rm=TRUE){
+  if ((!na.rm & any(is.na(x)))|all(is.na(x)))
+    NA else{
+      x <- na.omit(x)
+      media <- round(mean(x),digits)
+      desv <- round(sd(x),digits)
+      sprintf("%s (%s)",media,desv)    
+    }
+}
+
+medianQ <- function(x, digits=2,na.rm=TRUE){
+  if ((!na.rm & any(is.na(x)))|all(is.na(x)))
+    NA else{
+      x <- na.omit(x)
+      mediana <- round(median(x),digits)
+      q25 <- round(quantile(x, 0.25, names=FALSE), digits)
+      q75 <- round(quantile(x, 0.75, names=FALSE), digits)
+      sprintf("%s (%s, %s)", mediana, q25, q75)    
+    }
+}
+formatInterval <- function(est, inf, sup, digits=4, conf.level=0.95){
+  CI <- sprintf("(%s, %s)",round(inf,digits),round(sup,digits))
+  estimate <- round(est,digits)
+  df <- data.frame(estimate,CI, stringsAsFactors = FALSE)
+  names(df)[2]=paste("CI",100*conf.level,"%",sep="")
+  return(df)
+}
+n_valid<-function(x, ...){
+  sum(!is.na(x))
+}
+listaFunciones=list(mediaSd=meanSd,
+                    medianaQ=medianQ,
+                    asimetria=skewness,
+                    curtosis=kurtosis,
+                    min=min,
+                    max=max,
+                    n_valid=n_valid)
+```
+
+
+# Resumen de los datos obtenidos de la tasa de mortalidad
+
+
+```{r}
+datos%>% 
+  pivot_longer(c(PREC,JANT,JULT,OVR65,POPN,EDUC,HOUS,DENS,NONW,WWDRK,POOR,HC,NOX,`SO@`,HUMID, MORT),names_to="Medida",values_to="Valor") %>% 
+  group_by(Medida) %>% 
+  summarise_at(vars(Valor), listaFunciones) %>% 
+  flextable() %>%  fontsize(size=8,part="all") %>% 
+ # colformat_num(j=4:5,digits=2) %>% 
+  autofit()
+```
+
+
+```{r}
+
+datos %>%
+  select(PREC, JANT,JULT, OVR65, POPN,EDUC,HOUS,DENS,NONW,WWDRK,POOR,HC,NOX, `SO@`,HUMID,  MORT) %>%
+  pivot_longer(1:16,names_to="Variable",values_to = "Valor") %>%
+  group_by(Variable) %>%
+  do(tidy(t.test(.$Valor, conf.level=0.95))) %>%
+  do(formatInterval(.$estimate,.$conf.low,.$conf.high,digits=2,conf.level = 0.95)) %>%
+  flextable() %>%
+  fontsize(size=14, part="all") %>%
+  set_caption("Medias estimadas e Intervalos de Confianza al 95%") %>%
+  autofit() 
+
+```
+# Prueba de hipotesis 
